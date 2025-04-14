@@ -1,6 +1,4 @@
-# File: Config.py
 
-# --- Configuration Class ---
 class Config:
     """Holds all static configuration variables for the game."""
     # Screen dimensions
@@ -13,6 +11,9 @@ class Config:
     RED = (255, 0, 0)
     BLUE = (0, 0, 255)
     GREEN = (0, 255, 0)
+    GRAY = (209, 209, 209)
+    NICE_BLUE = (0, 153, 153)
+    DARK_GRAY = (128, 128, 128)
 
     # Box properties
     BOX_WIDTH = 400
@@ -39,3 +40,15 @@ class Config:
 
     # Frame rate
     FPS = 60
+
+    # Second ball margin
+    SMALLER_BOX_WIDTH = 100
+    SMALLER_BOX_HEIGHT = 50
+    SMALLER_BORDER_WIDTH = 2
+    SMALLER_BOX_COLOR = GRAY
+
+    # Even smaller margin
+    MICRO_BOX_WIDTH = BALL_RADIUS * 3
+    MICRO_BOX_HEIGHT = BALL_RADIUS * 3
+    MICRO_BORDER_WIDTH = 2
+    MICRO_BOX_COLOR = DARK_GRAY

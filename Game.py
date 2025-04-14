@@ -1,137 +1,172 @@
 # File: Game.py
 import pygame
 import sys
-# Import the modules (files) you created
 import Config
 import Ball
 
-# --- Game Class ---
 class Game:
-    """Manages the main game loop and game state."""
     def __init__(self):
-        """Initialize Pygame, screen, config, box, target, and ball."""
+        # ... (Initialization remains the same, ensure Ball() calls are correct) ...
         pygame.init()
-        # Instantiate the Config class from the Config module
         self.config = Config.Config()
-
-        # Set up the screen
         self.screen = pygame.display.set_mode((self.config.SCREEN_WIDTH, self.config.SCREEN_HEIGHT))
-        pygame.display.set_caption("Move the Ball! (OOP)")
+        pygame.display.set_caption("Move the Balls! (OOP)")
 
-        # Set up the box
+        # Box setup
         box_x = (self.config.SCREEN_WIDTH - self.config.BOX_WIDTH) // 2
         box_y = (self.config.SCREEN_HEIGHT - self.config.BOX_HEIGHT) // 2
         self.box_rect = pygame.Rect(box_x, box_y, self.config.BOX_WIDTH, self.config.BOX_HEIGHT)
 
-        # Instantiate the Ball class from the Ball module, passing the config instance
-        self.ball = Ball.Ball(self.config, self.config.RED, self.config.BALL_SPEED * 2)
-        self.ball_current_speed = self.config.BALL_SPEED
+        # Smaller movement area
+        smaller_box_x = (self.config.SCREEN_WIDTH - self.config.SMALLER_BOX_WIDTH) // 2
+        smaller_box_y = (self.config.SCREEN_HEIGHT - self.config.SMALLER_BOX_HEIGHT) // 2
+        self.smaller_box_rect = pygame.Rect(smaller_box_x, smaller_box_y, self.config.SMALLER_BOX_WIDTH, self.config.SMALLER_BOX_HEIGHT)
 
-        self.ball2 = Ball.Ball(self.config, self.config.BLUE, self.config.BALL_SPEED/2)
-        self.ball2_current_speed = self.config.BALL_SPEED
+        # Orbit
+        orbit_x = (self.config.BALL_RADIUS - self.config.MICRO_BOX_WIDTH) //2
+        orbit_y = (self.config.BALL_RADIUS - self.config.MICRO_BOX_HEIGHT) // 2
+        self.orbit = pygame.Rect(orbit_x, orbit_y, self.config.MICRO_BOX_WIDTH, self.config.MICRO_BOX_HEIGHT)
+        # Target area setup
+        target_x = self.box_rect.right - self.config.TARGET_WIDTH - self.config.BORDER_WIDTH - 10
+        target_y = self.box_rect.top + self.config.BORDER_WIDTH + 10
+        self.target_rect = pygame.Rect(target_x, target_y, self.config.TARGET_WIDTH, self.config.TARGET_HEIGHT)
+        self.target_color = self.config.TARGET_COLOR_NORMAL
 
-        self.ball3 = Ball.Ball(self.config, self.config.GREEN, self.config.BALL_SPEED * 2)
-        self.ball3_current_speed = self.config.BALL_SPEED
-        self.ball3.set_size(self.config.BALL_RADIUS/2)
+        # Create the balls (ensure these calls match the corrected Ball.__init__)
+        self.ball1 = Ball.Ball(self.config, self.config.RED)
+        start_x_ball2 = self.config.SCREEN_WIDTH // 2
+        start_y_ball2 = self.config.SCREEN_HEIGHT // 2 + self.config.BALL_RADIUS * 3
+        self.ball2 = Ball.Ball(self.config, self.config.BLUE, start_x=start_x_ball2, start_y=start_y_ball2)
 
-        # Game clock
+        start_x_ball3 = start_x_ball2 + self.config.BALL_RADIUS * 2
+        start_y_ball3 = start_y_ball2 + self.config.BALL_RADIUS * 2
+        self.ball3 = Ball.Ball(self.config, self.config.NICE_BLUE, start_x=start_x_ball3, start_y=start_y_ball3)
+        # Use a dictionary to track current speeds
+        self.ball_speeds = {
+            self.ball1: self.config.BALL_SPEED,
+            self.ball2: self.config.BALL_SPEED,
+            self.ball3: self.config.BALL_SPEED
+        }
         self.clock = pygame.time.Clock()
+
+    # --- Update handle_ball_movement ---
+    def handle_ball_movement(self, ball, keys):
+        """Handles movement logic (keys, acceleration, speed cap) for a given ball."""
+        base_speed = self.config.BALL_SPEED
+        acceleration = self.config.BALL_ACCELERATION
+        max_speed = base_speed * 2
+
+        # Determine keys for this ball
+        left_key, right_key, up_key, down_key = None, None, None, None
+        if ball is self.ball1:
+            # Arrow keys for ball 1
+            left_key, right_key, up_key, down_key = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN
+        elif ball is self.ball2:
+            # WASD keys for ball 2
+            left_key, right_key, up_key, down_key = pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s
+        else:
+            return # Unknown ball
+
+        # Determine movement directions
+        direction_x = 0
+        direction_y = 0 # Add y direction
+        moving = False
+        if keys[left_key]:
+            direction_x = -1
+            moving = True
+        if keys[right_key]:
+            direction_x = 1 # Right overrides left
+            moving = True
+        if keys[up_key]:
+            direction_y = -1 # Pygame y-axis is 0 at top
+            moving = True
+        if keys[down_key]:
+            direction_y = 1 # Down overrides up
+            moving = True
+
+        # Get current speed from the dictionary
+        current_speed = self.ball_speeds[ball]
+
+        # Apply acceleration or reset speed (only if moving in any direction)
+        if moving:
+            current_speed += acceleration
+            # Cap speed
+            if current_speed > max_speed:
+                current_speed = max_speed
+        else:
+            # Reset speed if not moving
+            current_speed = base_speed
+
+        # Store the updated speed back in the dictionary
+        self.ball_speeds[ball] = current_speed
+
+        # Apply movement to the ball object (both x and y)
+        # Note: This makes diagonal movement faster. Normalize if needed.
+        ball.x += direction_x * current_speed
+        ball.y += direction_y * current_speed # Apply vertical movement
+
+    # --- Methods run, _handle_events, _handle_input, _update, _check_*, _draw, _quit_game remain the same ---
+    # Make sure _handle_input calls handle_ball_movement for both balls as before.
 
     def run(self):
         """Starts the main game loop."""
         running = True
         while running:
-            # Handle events (like closing the window)
             running = self._handle_events()
             if not running:
                 break
-
-            # Handle continuous key presses for movement
             self._handle_input()
-
-            # Update game state (ball position, collisions)
             self._update()
-
-            # Draw everything to the screen
             self._draw()
-
-            # Limit frame rate
             self.clock.tick(self.config.FPS)
-
         self._quit_game()
 
     def _handle_events(self):
         """Process Pygame events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False # Signal to stop the loop
-        return True # Signal to continue
+                return False
+        return True
 
     def _handle_input(self):
-        """Check keyboard state and move the balls with acceleration."""
+        """Check keyboard state and call handler for each ball."""
         keys = pygame.key.get_pressed()
-        base_speed = self.config.BALL_SPEED
-        acceleration = self.config.BALL_ACCELERATION
-        max_speed = base_speed * 1.4
-
-        # --- Ball 1 Logic (Left/Right Arrows) ---
-        moving1 = False
-        direction1 = 0
-        if keys[pygame.K_LEFT]:
-            direction1 = -1
-            moving1 = True
-        if keys[pygame.K_RIGHT]:
-            # If both left/right pressed, right takes precedence
-            direction1 = 1
-            moving1 = True
-
-        if moving1:
-            # Accelerate
-            self.ball_current_speed += acceleration
-            # Cap speed at max_speed
-            if self.ball_current_speed > max_speed:
-                self.ball_current_speed = max_speed
-        else:
-            # Reset speed gradually or instantly when not moving
-            # Instant reset:
-            self.ball_current_speed = base_speed
-            # Optional: Gradual deceleration (more complex)
-            # if self.ball1_current_speed > base_speed:
-            #     self.ball1_current_speed -= acceleration * 2 # Decelerate faster
-            #     if self.ball1_current_speed < base_speed:
-            #         self.ball1_current_speed = base_speed
-            # else:
-            #     self.ball1_current_speed = base_speed
-
-
-        # Apply movement based on current speed and direction
-        self.ball.x += direction1 * self.ball_current_speed
+        self.handle_ball_movement(self.ball1, keys)
+        self.handle_ball_movement(self.ball2, keys)
 
     def _update(self):
         """Update all game objects."""
-        # Update ball position and check boundaries
-        self.ball.update(self.box_rect)
+        self.ball1.update(self.box_rect)
+        self.ball2.update(self.smaller_box_rect)
+        self.ball3.update(self.orbit)
+        self.ball_chaser()
 
-        self.ball2.update(self.box_rect)
+    def _check_target_area(self, ball_to_check):
+        """Check for collision with the target rectangle."""
+        ball_rect = ball_to_check.get_rect()
+        if ball_rect.colliderect(self.target_rect):
+            if ball_to_check is self.ball1:
+                print("here")
+                self.target_color = self.config.TARGET_COLOR_HIT
+        elif ball_to_check is self.ball1:
+             self.target_color = self.config.TARGET_COLOR_NORMAL
 
-        self.ball3.update(self.box_rect)
-        self.chase_ball()
+    def _check_hello_point(self, ball_to_check):
+        """Check if the ball's x-coordinate is near the HELLO_POINT_X."""
+        if ball_to_check is self.ball1:
+            ball_x, _ = ball_to_check.get_position()
+            if abs(ball_x - self.config.HELLO_POINT_X) <= self.config.HELLO_POINT_TOLERANCE:
+                print("hello")
 
     def _draw(self):
         """Draw all game elements to the screen."""
-        # Fill background
         self.screen.fill(self.config.BLACK)
-
-        # Draw the box (fill and border)
         pygame.draw.rect(self.screen, self.config.BOX_COLOR, self.box_rect)
         pygame.draw.rect(self.screen, self.config.BORDER_COLOR, self.box_rect, self.config.BORDER_WIDTH)
-
-        # Draw the ball
-        self.ball.draw(self.screen)
+        # pygame.draw.rect(self.screen, self.target_color, self.target_rect)
+        self.ball1.draw(self.screen)
         self.ball2.draw(self.screen)
         self.ball3.draw(self.screen)
-
-        # Update the display
         pygame.display.flip()
 
     def _quit_game(self):
@@ -139,55 +174,55 @@ class Game:
         pygame.quit()
         sys.exit()
 
-    def second_ball_accelerator(self, direction_to_move):
-        base_speed = self.config.BALL_SPEED
-        acceleration = self.config.BALL_ACCELERATION
-        max_speed = base_speed * 1.4
-        moving = False
-        direction = 0
-        if direction_to_move == "L":
-            direction = -1
-            moving = True
-        if direction_to_move == "R":
-            direction = 1
-            moving = True
+    def move_ball_programmatically(self, ball, direction):
+        """
+        Moves a specific ball object one step in the given direction ('L', 'R', 'U', 'D')
+        using the base speed, and applies boundary checks immediately.
+        """
+        if not ball:  # Check if a valid ball object was passed
+            print("Error: Invalid ball object provided.")
+            return
 
-        if moving:
-            self.ball2_current_speed += acceleration
-            if self.ball2_current_speed > max_speed:
-                self.ball2_current_speed = max_speed
+        speed = self.config.BALL_SPEED  # Use the base speed for this simple move
+
+        if direction == "L":
+            ball.x -= speed
+        elif direction == "R":
+            ball.x += speed
+        elif direction == "U":
+            ball.y -= speed  # Remember y=0 is top
+        elif direction == "D":
+            ball.y += speed
         else:
-            self.ball2_current_speed = base_speed
+            print(f"Warning: Unknown direction '{direction}' sent to move_ball_programmatically.")
+            return  # Do nothing if direction is unknown
 
-    def chase_ball(self):
-        """Chase the ball."""
-        # --- Calculate the difference in x ---
-        pos1 = self.ball.get_position()  # Gets (x1, y1)
+        # --- Crucial: Apply boundary checks immediately ---
+        # This ensures the programmatic move doesn't push the ball out of bounds
+        # before the next main update cycle.
+        ball.update(self.box_rect)
+
+    def ball_chaser(self):
+        pos1 = self.ball1.get_position()  # Gets (x1, y1)
         pos2 = self.ball2.get_position()  # Gets (x2, y2)
-        pos3 = self.ball3.get_position()
+        # pos3 = self.ball3.get_position()
 
         x1 = pos1[0]  # Extract x-coordinate of ball 1
         x2 = pos2[0]  # Extract x-coordinate of ball 2
-        x3 = pos3[0]  # Extract x-coords fo ball 3
+        # x3 = pos3[0]  # Extract x-coords fo ball 3
 
         delta_x = x1 - x2  # Calculate the difference
-        delta_xX = x1 - x3
+        # delta_xX = x1 - x3
 
-        """
-        TODO 
-        Add orbiting third ball. 
-        add y direction
-            why? idk
-        """
-        if delta_x != 0:
+        if abs(delta_x) > 10:
             print("Ball position doesn't match the ball2 position.")
             if delta_x > 0:
-                self.ball2._move("R")
+                self.move_ball_programmatically(self.ball2, "R")
             if delta_x < 0:
-                self.ball2._move("L")
+                self.move_ball_programmatically(self.ball2, "L")
 
-
-# --- Main execution ---
+    def smaller_ball_chaser(self):
+        pos1 = self.ball1.get_position()
 if __name__ == "__main__":
-    game = Game() # Create an instance of the Game
-    game.run()    # Start the game loop
+    game = Game()
+    game.run()
