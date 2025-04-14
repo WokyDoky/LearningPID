@@ -1,8 +1,14 @@
 # File: Game.py
+import math
+
 import pygame
 import sys
+
+from scipy.stats import arcsine
+
 import Config
 import Ball
+import numpy as np
 
 class Game:
     def __init__(self):
@@ -23,9 +29,9 @@ class Game:
         self.smaller_box_rect = pygame.Rect(smaller_box_x, smaller_box_y, self.config.SMALLER_BOX_WIDTH, self.config.SMALLER_BOX_HEIGHT)
 
         # Orbit
-        orbit_x = (self.config.BALL_RADIUS - self.config.MICRO_BOX_WIDTH) //2
-        orbit_y = (self.config.BALL_RADIUS - self.config.MICRO_BOX_HEIGHT) // 2
-        self.orbit = pygame.Rect(orbit_x, orbit_y, self.config.MICRO_BOX_WIDTH, self.config.MICRO_BOX_HEIGHT)
+        # orbit_x = (self.config.BALL_RADIUS - self.config.MICRO_BOX_WIDTH) //2
+        # orbit_y = (self.config.BALL_RADIUS - self.config.MICRO_BOX_HEIGHT) // 2
+        # self.orbit = pygame.Rect(orbit_x, orbit_y, self.config.MICRO_BOX_WIDTH, self.config.MICRO_BOX_HEIGHT)
         # Target area setup
         target_x = self.box_rect.right - self.config.TARGET_WIDTH - self.config.BORDER_WIDTH - 10
         target_y = self.box_rect.top + self.config.BORDER_WIDTH + 10
@@ -40,13 +46,20 @@ class Game:
 
         start_x_ball3 = start_x_ball2 + self.config.BALL_RADIUS * 2
         start_y_ball3 = start_y_ball2 + self.config.BALL_RADIUS * 2
-        self.ball3 = Ball.Ball(self.config, self.config.NICE_BLUE, start_x=start_x_ball3, start_y=start_y_ball3)
+        #self.ball3 = Ball.Ball(self.config, self.config.NICE_BLUE, start_x=start_x_ball3, start_y=start_y_ball3)
+        self.ball3 = Ball.Ball(self.config, self.config.NICE_BLUE,
+                               start_x=start_x_ball2 + self.config.ORBIT_RADIUS,  # Initial offset
+                               start_y=start_y_ball2,)  # Use smaller radius
+
+        self.ball3.set_size(self.config.BALL_RADIUS/2)
         # Use a dictionary to track current speeds
         self.ball_speeds = {
             self.ball1: self.config.BALL_SPEED,
             self.ball2: self.config.BALL_SPEED,
-            self.ball3: self.config.BALL_SPEED
+            self.ball3: self.config.BALL_SPEED #remove?
         }
+
+        self.orbit_angle = 0.0
         self.clock = pygame.time.Clock()
 
     # --- Update handle_ball_movement ---
@@ -138,7 +151,12 @@ class Game:
         """Update all game objects."""
         self.ball1.update(self.box_rect)
         self.ball2.update(self.smaller_box_rect)
-        self.ball3.update(self.orbit)
+
+
+        # Calculate new x, y using trigonometry
+        self.smaller_ball_chaser()
+        # ---
+        self.ball3.update(self.box_rect)
         self.ball_chaser()
 
     def _check_target_area(self, ball_to_check):
@@ -222,7 +240,33 @@ class Game:
                 self.move_ball_programmatically(self.ball2, "L")
 
     def smaller_ball_chaser(self):
-        pos1 = self.ball1.get_position()
+        # --- Calculate Orbiting Ball (ball3) Position ---
+        center_x, center_y = self.ball2.get_position()  # Orbit around ball2's center
+        #self.orbit_angle += self.config.ORBIT_SPEED  # Increment angle
+        #self.ball3.x = center_x + self.config.ORBIT_RADIUS * math.cos(self.orbit_angle)
+        #self.ball3.y = center_y + self.config.ORBIT_RADIUS * math.sin(self.orbit_angle)
+
+        # --- Calculate Orbiting Ball (ball3) Position ---
+        # Get center positions
+        b1_x, b1_y = self.ball1.get_position()
+        b2_x, b2_y = self.ball2.get_position()
+
+        # Calculate vector components from ball2 TOWARDS ball1
+        delta_x = b1_x - b2_x
+        delta_y = b1_y - b2_y
+
+        # Calculate the angle from ball2 towards ball1 using atan2(y, x)
+        # Add a small check to prevent issues if balls are exactly on top of each other
+        if delta_x == 0 and delta_y == 0:
+            # Keep previous position or default if desired, here we just skip update
+            pass  # Or set ball3 position relative to ball2 arbitrarily
+        else:
+            angle_to_ball1 = math.atan2(delta_y, delta_x)  # Angle in radians
+
+            # Calculate ball3's position: center of ball2 + offset towards ball1
+            orbit_radius = self.config.ORBIT_RADIUS
+            self.ball3.x = b2_x + orbit_radius * math.cos(angle_to_ball1)
+            self.ball3.y = b2_y + orbit_radius * math.sin(angle_to_ball1)
 if __name__ == "__main__":
     game = Game()
     game.run()

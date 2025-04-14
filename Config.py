@@ -47,8 +47,8 @@ class Config:
     SMALLER_BORDER_WIDTH = 2
     SMALLER_BOX_COLOR = GRAY
 
-    # Even smaller margin
-    MICRO_BOX_WIDTH = BALL_RADIUS * 3
-    MICRO_BOX_HEIGHT = BALL_RADIUS * 3
-    MICRO_BORDER_WIDTH = 2
-    MICRO_BOX_COLOR = DARK_GRAY
+    # --- Orbiting Ball (ball3) Config ---
+    MICRO_BALL_RADIUS = 8 # Radius for the orbiting ball
+    ORBIT_RADIUS = 40     # Distance from center of ball2 to center of ball3
+    ORBIT_SPEED = 0.05    # Radians per frame (adjust for faster/slower orbit)
+    # ---
