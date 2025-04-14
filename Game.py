@@ -133,6 +133,26 @@ class Game:
         pygame.quit()
         sys.exit()
 
+    def second_ball_accelerator(self, direction_to_move):
+        base_speed = self.config.BALL_SPEED
+        acceleration = self.config.BALL_ACCELERATION
+        max_speed = base_speed * 1.4
+        moving = False
+        direction = 0
+        if direction_to_move == "L":
+            direction = -1
+            moving = True
+        if direction_to_move == "R":
+            direction = 1
+            moving = True
+
+        if moving:
+            self.ball2_current_speed += acceleration
+            if self.ball2_current_speed > max_speed:
+                self.ball2_current_speed = max_speed
+        else:
+            self.ball2_current_speed = base_speed
+
     def chase_ball(self):
         """Chase the ball."""
         # --- Calculate the difference in x ---
