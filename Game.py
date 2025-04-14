@@ -27,8 +27,12 @@ class Game:
         self.ball = Ball.Ball(self.config, self.config.RED, self.config.BALL_SPEED * 2)
         self.ball_current_speed = self.config.BALL_SPEED
 
-        self.ball2 = Ball.Ball(self.config, self.config.BLUE, self.config.BALL_SPEED)
+        self.ball2 = Ball.Ball(self.config, self.config.BLUE, self.config.BALL_SPEED/2)
         self.ball2_current_speed = self.config.BALL_SPEED
+
+        self.ball3 = Ball.Ball(self.config, self.config.GREEN, self.config.BALL_SPEED * 2)
+        self.ball3_current_speed = self.config.BALL_SPEED
+        self.ball3.set_size(self.config.BALL_RADIUS/2)
 
         # Game clock
         self.clock = pygame.time.Clock()
@@ -110,6 +114,7 @@ class Game:
 
         self.ball2.update(self.box_rect)
 
+        self.ball3.update(self.box_rect)
         self.chase_ball()
 
     def _draw(self):
@@ -124,6 +129,7 @@ class Game:
         # Draw the ball
         self.ball.draw(self.screen)
         self.ball2.draw(self.screen)
+        self.ball3.draw(self.screen)
 
         # Update the display
         pygame.display.flip()
@@ -158,11 +164,21 @@ class Game:
         # --- Calculate the difference in x ---
         pos1 = self.ball.get_position()  # Gets (x1, y1)
         pos2 = self.ball2.get_position()  # Gets (x2, y2)
+        pos3 = self.ball3.get_position()
 
         x1 = pos1[0]  # Extract x-coordinate of ball 1
         x2 = pos2[0]  # Extract x-coordinate of ball 2
+        x3 = pos3[0]  # Extract x-coords fo ball 3
 
         delta_x = x1 - x2  # Calculate the difference
+        delta_xX = x1 - x3
+
+        """
+        TODO 
+        Add orbiting third ball. 
+        add y direction
+            why? idk
+        """
         if delta_x != 0:
             print("Ball position doesn't match the ball2 position.")
             if delta_x > 0:

@@ -55,3 +55,6 @@ class Ball:
     def get_position(self):
         """Return the current (x, y) coordinates of the ball's center."""
         return self.x, self.y
+
+    def set_size(self, r):
+        self.radius = r
